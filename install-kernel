@@ -55,7 +55,7 @@ if [ -e "$BUILDFILE" ]; then
 		newsum=$(md5sum $(get_latest_config) | awk '{print $1}')
 		if [ "$oldsum" != "$newsum" ]; then
 			echo "copying old config to $CONFHIST_DIR"
-			# cp "$oldconf" "$CONFHIST_DIR/.config-$(date +%Y%m%d%H%M)"
+			cp "$oldconf" "$CONFHIST_DIR/.config-$(date +%Y%m%d%H%M)"
 		else
 			echo "config file up to date. nothing to back up"
 		fi
@@ -64,19 +64,19 @@ fi
 
 if [ -z "$OLD_PKG" ]; then
 	echo downloading new package
-	# rm -rf $PKG_DIR
-	# curl -O "$PKG_URL"
-	# tar xzf linux-ck.tar.gz
+	rm -rf $PKG_DIR
+	curl -O "$PKG_URL"
+	tar xzf linux-ck.tar.gz
 
 	latest_conf=$(get_latest_config)
 	echo "copying conf: $latest_conf"
-	# cp "$latest_conf" "$PKG_DIR/config"
-	# updpkgsums "$BUILDFILE"
+	cp "$latest_conf" "$PKG_DIR/config"
+	updpkgsums "$BUILDFILE"
 fi
 
-# cd "$PKG_DIR"
-# if [ -n "$DO_CONFIG" ]; then
-	# sed -i '/_makenconfig=/ s/$/y/' PKGBUILD
-# fi
-# makepkg -s -r -f -i
-# cd ..
+cd "$PKG_DIR"
+if [ -n "$DO_CONFIG" ]; then
+	sed -i '/_makenconfig=/ s/$/y/' PKGBUILD
+fi
+makepkg -s -r -f -i
+cd ..
