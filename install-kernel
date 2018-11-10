@@ -45,14 +45,16 @@ done
 # pull old config if it exists and is not the most recent
 if [ -e "$BUILDFILE" ]; then
 	echo "checking for old config file"
-	# kver=$(get_from_buildfile "$BUILDFILE" "_srcname")
+
     source "$BUILDFILE" # get pkgver
 	oldconf="$PKG_DIR/src/linux-$pkgver/.config"
-	## this file does not always exist?
+
 	if [ -e "$oldconf" ]; then
 		echo "found old config"
+
 		oldsum=$(md5sum "$oldconf" | awk '{print $1}')
 		newsum=$(md5sum $(get_latest_config) | awk '{print $1}')
+
 		if [ "$oldsum" != "$newsum" ]; then
 			echo "copying old config to $CONFHIST_DIR"
 			cp "$oldconf" "$CONFHIST_DIR/.config-$(date +%Y%m%d%H%M)"
@@ -64,12 +66,15 @@ fi
 
 if [ -z "$OLD_PKG" ]; then
 	echo downloading new package
+
 	rm -rf $PKG_DIR
 	curl -O "$PKG_URL"
 	tar xzf linux-ck.tar.gz
 
 	latest_conf=$(get_latest_config)
+
 	echo "copying conf: $latest_conf"
+
 	cp "$latest_conf" "$PKG_DIR/config"
 	updpkgsums "$BUILDFILE"
 fi
