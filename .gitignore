@@ -1,4 +1,5 @@
 *
 !install-kernel
+!update-kernel
 !config-history/
 !config-history/*

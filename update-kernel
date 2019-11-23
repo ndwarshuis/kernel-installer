@@ -1,0 +1,144 @@
+#! /bin/bash
+
+## package name
+custom_name=linux-lts-native
+
+## gcc optimization parameters
+gcc_patch_version=20190714
+gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v9.1+_kernel_v4.13+.patch"
+
+gcc_patch_src='enable_additional_cpu_optimizations-$_gcc_more_v.tar.gz::https://github.com\/graysky2/kernel_gcc_patch/archive/$_gcc_more_v.tar.gz'
+gcc_patch_msg='msg "Applying Additional GCC Optimizations Patch"'
+gcc_patch_apply="patch -Np1 -i \"\$srcdir/kernel_gcc_patch-\$_gcc_more_v/$gcc_patch_filename\""
+
+repo_dir=packages/linux-lts/repos/core-x86_64
+build_dir=.build
+build_file="$build_dir/PKGBUILD"
+hist_dir=config-history
+
+help="$(basename "$0") [-o] [-c] [-h]
+
+Natively builds the latest version of the linux-lts kernel with 
+graysky's GCC patch and my own config.
+
+Options:
+	-o: use current package build files regardless of newer versions
+	-c: launch make nconfig during build
+	-h: show this"
+
+get_latest_config() {
+	echo "$hist_dir/$(ls -Art "$hist_dir" | tail -n 1)"
+}
+
+back_up_config() {
+    # pull old config if it exists and is not the most recent
+    if [ -e "$build_file" ]; then
+        echo "checking for old config file"
+
+        source "$build_file" # get pkgver
+        oldconf="$build_dir/src/linux-$pkgver/.config"
+
+        if [ -e "$oldconf" ]; then
+            echo "found old config"
+
+            oldsum=$(md5sum "$oldconf" | awk '{print $1}')
+            newsum=$(md5sum "$(get_latest_config)" | awk '{print $1}')
+
+            if [ "$oldsum" != "$newsum" ]; then
+                echo "copying old config to $hist_dir"
+                cp "$oldconf" "$hist_dir/.config-$(date +%Y%m%d%H%M)"
+            else
+                echo "config file up to date. nothing to back up"
+            fi
+        fi
+    fi
+}
+
+update_build() {
+    if [ -z "$old_build" ]; then
+        ## update repo tree
+        if [ ! -e packages ]; then
+            echo Retrieving package tree
+            svn checkout --depth=empty svn://svn.archlinux.org/packages
+        fi
+
+        ## update linux-lts repo
+        echo Updating linux-lts package
+        cd packages || exit
+        svn update linux-lts
+        cd ..
+
+        rm -rf $build_dir
+        cp -r "$repo_dir" "$build_dir"
+
+        ## copy new config
+        latest_conf=$(get_latest_config)
+        echo "copying conf: $latest_conf"
+        cp "$latest_conf" "$build_dir/config"
+
+        ## use "make nconfig" if we ask for it (see sed cmd below)
+        if [ -n "$do_config" ]; then
+            make_config_cmds="make oldconfig\n  make nconfig"
+        else
+            make_config_cmds="make oldconfig"
+        fi
+
+        ## if "security patches is not found in prepare(), warn user
+        ## that the GCC patch won't be applied
+        if ! grep 'Setting version...' "$build_file" > /dev/null; then
+            echo "GCC patch not applied!!!"
+            exit 1
+        fi
+
+        ## modify the PKGBUILD
+        ## - change package name
+        ## - change kernelname
+        ## - unindent custom name
+        ## - add gcc path version variable
+        ## - add gcc path to sources
+        ## - add gcc patch command in prepare
+        ## - add make config commands
+        ## - delete docs build command
+        ## - delete package-docs
+        ## - remove package-docs from pkgname
+        sed -i -e "s/pkgbase=.*/pkgbase=$custom_name/g" \
+            -e "/^pkgrel=.*/a _gcc_more_v=\'$gcc_patch_version\'" \
+            -e "s|source=(|source=($gcc_patch_src\n        |" \
+            -e "/localversion\.20-pkgname/d" \
+            -e "/Setting version\.\.\./i \ \ $gcc_patch_msg\n\ \ $gcc_patch_apply\n" \
+            -e "/^\s*make olddefconfig/a \ \ $make_config_cmds" \
+            -e "s/\s*htmldocs//" \
+            -e '/^_package-docs()\ {/,/^}/d' \
+            -e 's/\s*"$pkgbase-docs"//' \
+            "$build_file"
+
+	    updpkgsums "$build_file"
+    fi
+}
+
+while getopts ":och" OPT; do
+	case ${OPT} in
+		o)
+			old_build="true"
+			;;
+		c)
+			do_config="true"
+			;;
+		h)
+			echo "$help"
+			exit 0
+			;;
+		\?)
+			echo "$help"
+			exit 0
+			;;
+	esac
+done
+
+back_up_config
+update_build
+
+cd "$build_dir" || exit
+makepkg -s -r -f -i
+cd ..
+
