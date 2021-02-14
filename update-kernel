@@ -15,6 +15,7 @@ repo_dir=packages/linux-lts/repos/core-x86_64
 build_dir=.build
 build_file="$build_dir/PKGBUILD"
 hist_dir=config-history
+makepkg_dir=$(sed -n 's/^BUILDDIR=\(.*\)/\1/p' /etc/makepkg.conf)
 
 help="$(basename "$0") [-o] [-c] [-h]
 
@@ -36,7 +37,13 @@ back_up_config() {
         echo "checking for old config file"
 
         source "$build_file" # get pkgver
-        oldconf="$build_dir/src/linux-$pkgver/.config"
+
+        # copy from the tmp dir if this is what makepkg is configured to do
+        if [[ "$makepkg_dir" == "" ]]; then
+            oldconf="$build_dir/src/linux-$pkgver/.config"
+        else
+            oldconf="$makepkg_dir/linux-lts-native/src/linux-$pkgver/.config"
+        fi
 
         if [ -e "$oldconf" ]; then
             echo "found old config"
@@ -135,10 +142,10 @@ while getopts ":och" OPT; do
 	esac
 done
 
-back_up_config
 update_build
 
 cd "$build_dir" || exit
 makepkg -s -r -f -i
 cd ..
 
+back_up_config
