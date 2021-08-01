@@ -4,12 +4,13 @@
 custom_name=linux-lts-native
 
 ## gcc optimization parameters
-gcc_patch_version=20190714
-gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v9.1+_kernel_v4.13+.patch"
+gcc_patch_version=20201113
+#gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v9.1+_kernel_v4.13+.patch"
+gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v10.1+_kernel_v5.8+.patch"
 
-gcc_patch_src='enable_additional_cpu_optimizations-$_gcc_more_v.tar.gz::https://github.com\/graysky2/kernel_gcc_patch/archive/$_gcc_more_v.tar.gz'
+gcc_patch_src='enable_additional_cpu_optimizations-$_gcc_more_v.tar.gz::https://github.com\/graysky2/kernel_compiler_patch/archive/$_gcc_more_v.tar.gz'
 gcc_patch_msg='msg "Applying Additional GCC Optimizations Patch"'
-gcc_patch_apply="patch -Np1 -i \"\$srcdir/kernel_gcc_patch-\$_gcc_more_v/$gcc_patch_filename\""
+gcc_patch_apply="patch -Np1 -i \"\$srcdir/kernel_compiler_patch-\$_gcc_more_v/$gcc_patch_filename\""
 
 repo_dir=packages/linux-lts/repos/core-x86_64
 build_dir=.build
@@ -118,6 +119,14 @@ update_build() {
             -e '/^_package-docs()\ {/,/^}/d' \
             -e 's/\s*"$pkgbase-docs"//' \
             "$build_file"
+	# TEMPORARILY DISABLE THE GCC PATCH
+        #sed -i -e "s/pkgbase=.*/pkgbase=$custom_name/g" \
+        #    -e "/localversion\.20-pkgname/d" \
+        #    -e "/^\s*make olddefconfig/a \ \ $make_config_cmds" \
+        #    -e "s/\s*htmldocs//" \
+        #    -e '/^_package-docs()\ {/,/^}/d' \
+        #    -e 's/\s*"$pkgbase-docs"//' \
+        #    "$build_file"
 
 	    updpkgsums "$build_file"
     fi
