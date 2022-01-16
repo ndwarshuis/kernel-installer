@@ -4,9 +4,9 @@
 custom_name=linux-lts-native
 
 ## gcc optimization parameters
-gcc_patch_version=20201113
-#gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v9.1+_kernel_v4.13+.patch"
-gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v10.1+_kernel_v5.8+.patch"
+gcc_patch_version=20211114
+#gcc_patch_filename="enable_additional_cpu_optimizations_for_gcc_v10.1+_kernel_v5.8+.patch"
+gcc_patch_filename="more-uarches-for-kernel-5.15+.patch"
 
 gcc_patch_src='enable_additional_cpu_optimizations-$_gcc_more_v.tar.gz::https://github.com\/graysky2/kernel_compiler_patch/archive/$_gcc_more_v.tar.gz'
 gcc_patch_msg='msg "Applying Additional GCC Optimizations Patch"'
