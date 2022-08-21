@@ -119,6 +119,8 @@ update_build() {
             -e '/^_package-docs()\ {/,/^}/d' \
             -e 's/\s*"$pkgbase-docs"//' \
             "$build_file"
+	## remove btfid thingy
+	sed -i '/resolve_btfids/d' "$build_file"
 	# TEMPORARILY DISABLE THE GCC PATCH
         #sed -i -e "s/pkgbase=.*/pkgbase=$custom_name/g" \
         #    -e "/localversion\.20-pkgname/d" \
